@@ -3784,8 +3784,19 @@ fn create_preview_window(app: &AppHandle, file_path: &str) -> Result<(), String>
         return Ok(());
     }
 
+    // Standalone previews may be outside the configured notes folder (and
+    // outside the default asset scope). Allow the Markdown file's directory so
+    // relative images can be served by the asset protocol.
+    let file_path_buf = PathBuf::from(file_path);
+    if let Some(parent) = file_path_buf.parent() {
+        let asset_dir = parent
+            .canonicalize()
+            .unwrap_or_else(|_| parent.to_path_buf());
+        let _ = app.asset_protocol_scope().allow_directory(asset_dir, true);
+    }
+
     // Extract filename for the window title
-    let filename = PathBuf::from(file_path)
+    let filename = file_path_buf
         .file_name()
         .map(|n| n.to_string_lossy().into_owned())
         .unwrap_or_else(|| "Preview".to_string());

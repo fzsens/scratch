@@ -24,18 +24,20 @@ function splitReferenceSuffix(src: string): { path: string; suffix: string } {
 
 function normalizeRelativePath(baseDir: string, relativePath: string): string {
   const separator = baseDir.includes("\\") ? "\\" : "/";
+  const isUnc = /^[/\\]{2}/.test(baseDir);
+  const isRooted = baseDir.startsWith("/") || (separator === "\\" && baseDir.startsWith("\\"));
   const normalizedBase = baseDir.replace(/[\\/]+/g, separator);
   const parts = `${normalizedBase}${separator}${relativePath.replace(/[\\/]+/g, separator)}`
     .split(separator)
     .filter(Boolean);
   const resolved: string[] = [];
+  const anchorDepth = isUnc ? 2 : /^[a-zA-Z]:$/.test(parts[0] ?? "") ? 1 : 0;
 
   for (const part of parts) {
     if (part === ".") continue;
     if (part === "..") {
-      // Do not resolve above the filesystem root. The asset protocol will still
-      // enforce its configured scope when the resulting URL is requested.
-      if (resolved.length > 1 || (resolved.length === 1 && !/^[a-zA-Z]:$/.test(resolved[0]))) {
+      // Do not resolve above the filesystem root or a Windows UNC share.
+      if (resolved.length > anchorDepth) {
         resolved.pop();
       }
       continue;
@@ -43,7 +45,7 @@ function normalizeRelativePath(baseDir: string, relativePath: string): string {
     resolved.push(part);
   }
 
-  const prefix = baseDir.startsWith("/") ? separator : "";
+  const prefix = isUnc ? separator.repeat(2) : isRooted ? separator : "";
   return `${prefix}${resolved.join(separator)}`;
 }
 
