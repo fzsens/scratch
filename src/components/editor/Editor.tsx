@@ -18,11 +18,16 @@ import Link from "@tiptap/extension-link";
 import Image from "@tiptap/extension-image";
 import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
-import { TableKit } from "@tiptap/extension-table";
+import {
+  TableCell,
+  TableHeader,
+  TableRow,
+} from "@tiptap/extension-table";
 import { Markdown } from "@tiptap/markdown";
 import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
 import { lowlight } from "./lowlight";
 import { CodeBlockView } from "./CodeBlockView";
+import { ScratchRichTableMarkdown, ScratchTable } from "./RichTableMarkdown";
 import { Extension, InputRule, mergeAttributes } from "@tiptap/core";
 import { Decoration, DecorationSet } from "@tiptap/pm/view";
 import {
@@ -1134,14 +1139,16 @@ export function Editor({
       TaskItem.configure({
         nested: true,
       }),
-      TableKit.configure({
-        table: {
-          resizable: false,
-          HTMLAttributes: {
-            class: "not-prose",
-          },
+      ScratchTable.configure({
+        resizable: false,
+        HTMLAttributes: {
+          class: "not-prose",
         },
       }),
+      TableRow,
+      TableCell,
+      TableHeader,
+      ScratchRichTableMarkdown,
       Frontmatter,
       Markdown.configure({}),
       SearchHighlight.configure({
