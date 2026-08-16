@@ -167,7 +167,7 @@ export function ListItem({
         "w-full text-left px-2.5 py-2.25 transition-colors cursor-pointer select-none rounded-md",
         "focus:outline-none focus-visible:outline-none",
         isSelected
-          ? "bg-bg-muted group-focus/notelist:ring-1 group-focus/notelist:ring-text-muted"
+          ? "bg-bg-muted"
           : "hover:bg-bg-muted"
       )}
     >

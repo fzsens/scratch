@@ -76,7 +76,10 @@ import { EditorWidthHandles } from "./EditorWidthHandle";
 import { ScratchBlockMath, normalizeBlockMath } from "./MathExtensions";
 import { cn } from "../../lib/utils";
 import { plainTextFromMarkdown } from "../../lib/plainText";
-import { resolveMarkdownImageSources } from "../../lib/markdownAssets";
+import {
+  makeNoteRelativeAssetPath,
+  resolveMarkdownImageSources,
+} from "../../lib/markdownAssets";
 import { Button, IconButton, ToolbarButton, Tooltip } from "../ui";
 import * as notesService from "../../services/notes";
 import { downloadPdf, downloadMarkdown } from "../../services/pdf";
@@ -267,7 +270,8 @@ function FormatBar({
   if (!editor) return null;
 
   return (
-    <div className="flex items-center gap-1 px-3 pb-2 border-b border-border overflow-x-auto scrollbar-none">
+    <div className="overflow-x-auto scrollbar-none border-b border-border px-3 pb-1.5">
+      <div className="mx-auto flex w-max min-w-full items-center justify-center gap-0.5">
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleBold().run()}
         isActive={editor.isActive("bold")}
@@ -290,7 +294,7 @@ function FormatBar({
         <StrikethroughIcon className="w-4.5 h-4.5 stroke-[1.5]" />
       </ToolbarButton>
 
-      <div className="w-px h-4.5 border-l border-border mx-2" />
+      <div className="w-px h-4.5 border-l border-border mx-1.5" />
 
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
@@ -321,7 +325,7 @@ function FormatBar({
         <Heading4Icon className="w-4.5 h-4.5 stroke-[1.5]" />
       </ToolbarButton>
 
-      <div className="w-px h-4.5 border-l border-border mx-2" />
+      <div className="w-px h-4.5 border-l border-border mx-1.5" />
 
       <ToolbarButton
         onClick={() => editor.chain().focus().toggleBulletList().run()}
@@ -380,7 +384,7 @@ function FormatBar({
         <SeparatorIcon />
       </ToolbarButton>
 
-      <div className="w-px h-4.5 border-l border-border mx-2" />
+      <div className="w-px h-4.5 border-l border-border mx-1.5" />
 
       <ToolbarButton
         onClick={onAddLink}
@@ -429,6 +433,7 @@ function FormatBar({
           </DropdownMenu.Content>
         </DropdownMenu.Portal>
       </DropdownMenu.Root>
+      </div>
     </div>
   );
 }
@@ -1233,15 +1238,23 @@ export function Editor({
                 // Get notes folder and construct absolute path using Tauri's join
                 const notesFolder = await invoke<string>("get_notes_folder");
                 const absolutePath = await join(notesFolder, relativePath);
+                const markdownPath = makeNoteRelativeAssetPath(
+                  relativePath,
+                  notesFolder,
+                  currentNotePathRef.current ?? "",
+                );
 
                 // Convert to Tauri asset URL
                 const assetUrl = convertFileSrc(absolutePath);
 
-                // Insert image
+                // Persist the relative Markdown path and use the asset URL only for rendering.
                 editorRef.current
                   ?.chain()
                   .focus()
-                  .setImage({ src: assetUrl })
+                  .insertContent({
+                    type: "image",
+                    attrs: { src: markdownPath, resolvedSrc: assetUrl },
+                  })
                   .run();
               } catch (error) {
                 console.error("Failed to paste image:", error);
@@ -1794,7 +1807,7 @@ export function Editor({
     });
     if (selected) {
       try {
-        // Copy image to assets folder and get relative path (assets/filename.ext)
+        // Copy image to its dated assets folder and get the relative path.
         const relativePath = await invoke<string>("copy_image_to_assets", {
           sourcePath: selected as string,
         });
@@ -1802,12 +1815,24 @@ export function Editor({
         // Get notes folder and construct absolute path using Tauri's join
         const notesFolder = await invoke<string>("get_notes_folder");
         const absolutePath = await join(notesFolder, relativePath);
+        const markdownPath = makeNoteRelativeAssetPath(
+          relativePath,
+          notesFolder,
+          currentNotePathRef.current ?? "",
+        );
 
         // Convert to Tauri asset URL
         const assetUrl = convertFileSrc(absolutePath);
 
-        // Insert image with asset URL
-        editor.chain().focus().setImage({ src: assetUrl }).run();
+        // Persist the relative Markdown path and use the asset URL only for rendering.
+        editor
+          .chain()
+          .focus()
+          .insertContent({
+            type: "image",
+            attrs: { src: markdownPath, resolvedSrc: assetUrl },
+          })
+          .run();
       } catch (error) {
         console.error("Failed to add image:", error);
       }

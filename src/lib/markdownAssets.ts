@@ -3,6 +3,35 @@ import type { JSONContent } from "@tiptap/core";
 
 const WINDOWS_ABSOLUTE_PATH = /^[a-zA-Z]:[\\/]/;
 
+/**
+ * Convert a path relative to the notes root into a path relative to a note.
+ * Markdown resolves local resources from the document's own directory.
+ */
+export function makeNoteRelativeAssetPath(
+  assetPath: string,
+  notesFolder: string,
+  notePath: string,
+): string {
+  const normalizedAssetPath = assetPath.replace(/\\/g, "/").replace(/^\/+/, "");
+  if (!notesFolder || !notePath) return normalizedAssetPath;
+
+  const rootParts = notesFolder.replace(/\\/g, "/").split("/").filter(Boolean);
+  const noteParts = notePath.replace(/\\/g, "/").split("/").filter(Boolean);
+  const isWindowsPath = WINDOWS_ABSOLUTE_PATH.test(notesFolder) || notesFolder.startsWith("\\\\");
+  const equalPart = (left: string, right: string) =>
+    isWindowsPath ? left.toLowerCase() === right.toLowerCase() : left === right;
+
+  if (
+    noteParts.length <= rootParts.length ||
+    rootParts.some((part, index) => !equalPart(part, noteParts[index] ?? ""))
+  ) {
+    return normalizedAssetPath;
+  }
+
+  const noteDirectoryDepth = noteParts.length - rootParts.length - 1;
+  return `${"../".repeat(noteDirectoryDepth)}${normalizedAssetPath}`;
+}
+
 function isRelativeAssetPath(src: string): boolean {
   if (!src || src.startsWith("#") || src.startsWith("/") || src.startsWith("\\")) {
     return false;

@@ -1,5 +1,5 @@
-/** Default sidebar width in pixels when no override is set (16rem, the former `w-64`). */
-export const SIDEBAR_DEFAULT_PX = 256;
+/** Compact default width keeps navigation useful without competing with the document. */
+export const SIDEBAR_DEFAULT_PX = 240;
 /** Minimum allowed sidebar width in pixels. */
 export const SIDEBAR_MIN_PX = 180;
 /** Maximum allowed sidebar width in pixels. */

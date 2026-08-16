@@ -395,6 +395,18 @@ fn sanitize_filename(title: &str) -> String {
     }
 }
 
+/// Returns today's asset directory using the local timezone.
+/// Images are grouped by day while existing flat asset paths remain valid.
+fn dated_assets_dir(notes_folder: &str) -> (PathBuf, String) {
+    let date = chrono::Local::now().format("%Y-%m-%d").to_string();
+    let directory = PathBuf::from(notes_folder).join("assets").join(&date);
+    (directory, date)
+}
+
+fn dated_asset_relative_path(date: &str, filename: &str) -> String {
+    format!("assets/{date}/{filename}")
+}
+
 fn ordinal_suffix(day: u32) -> &'static str {
     match (day % 100, day % 10) {
         (11..=13, _) => "th",
@@ -2505,8 +2517,8 @@ async fn save_clipboard_image(
         return Err("Decoded image data is empty".to_string());
     }
 
-    // Create assets folder path
-    let assets_dir = PathBuf::from(&folder).join("assets");
+    // Group new images under assets/YYYY-MM-DD using the local date.
+    let (assets_dir, asset_date) = dated_assets_dir(&folder);
     fs::create_dir_all(&assets_dir)
         .await
         .map_err(|e| e.to_string())?;
@@ -2533,7 +2545,7 @@ async fn save_clipboard_image(
         .map_err(|_| "Failed to write image".to_string())?;
 
     // Return relative path
-    Ok(format!("assets/{}", target_name))
+    Ok(dated_asset_relative_path(&asset_date, &target_name))
 }
 
 #[tauri::command]
@@ -2577,8 +2589,8 @@ async fn copy_image_to_assets(
     // Sanitize the filename
     let sanitized_name = sanitize_filename(original_name);
 
-    // Create assets folder path
-    let assets_dir = PathBuf::from(&folder).join("assets");
+    // Group new images under assets/YYYY-MM-DD using the local date.
+    let (assets_dir, asset_date) = dated_assets_dir(&folder);
     fs::create_dir_all(&assets_dir)
         .await
         .map_err(|e| e.to_string())?;
@@ -2600,7 +2612,7 @@ async fn copy_image_to_assets(
         .map_err(|_| "Failed to copy image".to_string())?;
 
     // Return both relative path and filename for frontend to construct the URL
-    Ok(format!("assets/{}", target_name))
+    Ok(dated_asset_relative_path(&asset_date, &target_name))
 }
 
 #[tauri::command]

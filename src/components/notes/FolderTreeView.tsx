@@ -169,7 +169,7 @@ const FileItem = memo(function FileItem({
                 ? "bg-accent/10 ring-1 ring-accent"
                 : isSelected &&
                     (!focusedItemKey || focusedItemKey === `note:${note.id}`)
-                  ? "bg-bg-muted group-focus/notelist:ring-1 group-focus/notelist:ring-text-muted"
+                  ? "bg-bg-muted"
                   : isMultiSelected
                     ? "bg-bg-muted"
                     : "hover:bg-bg-muted"
@@ -300,7 +300,7 @@ const AttachmentFileItem = memo(function AttachmentFileItem({
           ref={itemRef}
           className={`flex items-center gap-1.5 py-1.5 cursor-pointer rounded-md select-none transition-colors ${
             isSelected && (!focusedItemKey || focusedItemKey === `attachment:${attachment.id}`)
-              ? "bg-bg-muted group-focus/notelist:ring-1 group-focus/notelist:ring-text-muted"
+              ? "bg-bg-muted"
               : "hover:bg-bg-muted"
           }`}
           style={{ paddingLeft: `${depth * 12 + 8}px`, paddingRight: "8px" }}
@@ -414,7 +414,7 @@ const FolderItemComponent = memo(function FolderItem({
               isOver
                 ? "bg-accent/10 ring-1 ring-accent"
                 : isFocused
-                  ? "bg-bg-muted/50 ring-1 ring-text-muted/30"
+                  ? "bg-bg-muted"
                   : "hover:bg-bg-muted"
             }`}
             style={{ paddingLeft: `${depth * 12 + 8}px`, paddingRight: "8px" }}

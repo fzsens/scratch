@@ -1,31 +1,31 @@
-import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
-import { toast } from "sonner";
-import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import {
   DndContext,
   DragOverlay,
   PointerSensor,
   useSensor,
   useSensors,
-  type DragStartEvent,
   type DragEndEvent,
+  type DragStartEvent,
 } from "@dnd-kit/core";
+import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
+import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
+import { toast } from "sonner";
 import { useNotes } from "../../context/NotesContext";
-import { NoteList } from "../notes/NoteList";
-import { Footer } from "./Footer";
-import { IconButton, Input } from "../ui";
+import { isMac, isWindows, mod, shift } from "../../lib/platform";
+import * as notesService from "../../services/notes";
 import {
-  PlusIcon,
-  XIcon,
-  SearchIcon,
-  SearchOffIcon,
   AddNoteIcon,
   FolderPlusIcon,
   NoteIcon,
+  PlusIcon,
+  SearchIcon,
+  SearchOffIcon,
+  XIcon,
 } from "../icons";
-import { mod, shift, isMac, isWindows } from "../../lib/platform";
-import * as notesService from "../../services/notes";
 import { FolderNameDialog } from "../notes/FolderNameDialog";
+import { NoteList } from "../notes/NoteList";
+import { IconButton, Input } from "../ui";
+import { Footer } from "./Footer";
 
 interface SidebarProps {
   onOpenSettings?: () => void;
@@ -340,7 +340,6 @@ export function Sidebar({ onOpenSettings }: SidebarProps) {
               <DropdownMenu.Trigger asChild>
                 <IconButton
                   variant="ghost"
-                  title="New Note or Folder"
                 >
                   <PlusIcon className="w-5.25 h-5.25 stroke-[1.4]" />
                 </IconButton>
