@@ -647,9 +647,21 @@ html.dark {
 /* Blockquotes */
 .prose
   :where(blockquote):not(:where([class~="not-prose"], [class~="not-prose"] *)) {
-  color: var(--color-text-muted);
+  color: var(--color-text-muted) !important;
   border-left-color: var(--color-border);
   border-inline-start-color: var(--color-border);
+  font-style: italic;
+  font-weight: 400 !important;
+}
+
+/* Typography applies its own text color and weight to blockquote children. */
+.prose
+  :where(blockquote p, blockquote li, blockquote em, blockquote span):not(
+    :where([class~="not-prose"], [class~="not-prose"] *)
+  ) {
+  color: inherit !important;
+  font-style: inherit;
+  font-weight: 400 !important;
 }
 
 /* Search match highlighting - uses the selection color */
