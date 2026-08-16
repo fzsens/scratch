@@ -2660,13 +2660,17 @@ async fn open_folder_dialog(
 #[tauri::command]
 async fn open_in_file_manager(path: String) -> Result<(), String> {
     let path_buf = PathBuf::from(&path);
-    if !path_buf.exists() || !path_buf.is_dir() {
-        return Err("Path does not exist or is not a directory".to_string());
+    if !path_buf.exists() {
+        return Err("Path does not exist".to_string());
     }
 
     #[cfg(target_os = "macos")]
     {
-        std::process::Command::new("open")
+        let mut command = std::process::Command::new("open");
+        if path_buf.is_file() {
+            command.arg("-R");
+        }
+        command
             .arg(&path)
             .spawn()
             .map_err(|e| e.to_string())?;
@@ -2675,16 +2679,26 @@ async fn open_in_file_manager(path: String) -> Result<(), String> {
     #[cfg(target_os = "windows")]
     {
         let windows_path = path.replace("/", "\\");
-        std::process::Command::new("explorer")
-            .arg(&windows_path)
+        let mut command = std::process::Command::new("explorer");
+        if path_buf.is_file() {
+            command.arg(format!("/select,{}", windows_path));
+        } else {
+            command.arg(&windows_path);
+        }
+        command
             .spawn()
             .map_err(|e| e.to_string())?;
     }
 
     #[cfg(target_os = "linux")]
     {
+        let reveal_path = if path_buf.is_file() {
+            path_buf.parent().unwrap_or(Path::new(".")).to_path_buf()
+        } else {
+            path_buf
+        };
         std::process::Command::new("xdg-open")
-            .arg(&path)
+            .arg(reveal_path)
             .spawn()
             .map_err(|e| e.to_string())?;
     }

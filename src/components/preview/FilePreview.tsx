@@ -74,8 +74,9 @@ export function FilePreview({
   useEffect(() => {
     setTextContent(null);
     setImageError(false);
+    setReloadKey((key) => key + 1);
     loadText();
-  }, [loadText, attachment.modified]);
+  }, [attachment, loadText]);
 
   const handleReload = useCallback(() => {
     setReloadKey((key) => key + 1);

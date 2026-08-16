@@ -34,13 +34,14 @@ interface NotesDataContextValue {
 // Actions context: stable references, rarely causes re-renders
 interface NotesActionsContextValue {
   selectNote: (id: string) => Promise<void>;
-  selectAttachment: (attachment: AttachmentMetadata) => void;
+  selectAttachment: (attachment: AttachmentMetadata) => Promise<void>;
+  registerEditorFlush: (flush: (() => Promise<void>) | null) => void;
   createNote: () => Promise<void>;
   consumePendingNewNote: (id: string) => boolean;
   saveNote: (content: string, noteId?: string) => Promise<void>;
   deleteNote: (id: string) => Promise<void>;
   duplicateNote: (id: string) => Promise<void>;
-  refreshNotes: () => Promise<void>;
+  refreshNotes: (mapAttachmentId?: (id: string) => string) => Promise<void>;
   reloadCurrentNote: () => Promise<void>;
   setNotesFolder: (path: string) => Promise<void>;
   syncNotesFolder: (path: string) => Promise<void>;
@@ -94,8 +95,10 @@ export function NotesProvider({ children }: { children: ReactNode }) {
   const searchRequestIdRef = useRef(0);
   // Tracks the ID of a newly created note so Editor can focus its title.
   const pendingNewNoteIdRef = useRef<string | null>(null);
+  // Allows note navigation to wait for the editor's debounced save.
+  const editorFlushRef = useRef<(() => Promise<void>) | null>(null);
 
-  const refreshNotes = useCallback(async () => {
+  const refreshNotes = useCallback(async (mapAttachmentId?: (id: string) => string) => {
     if (!notesFolder) return;
     try {
       const notesList = await notesService.listNotes();
@@ -104,7 +107,8 @@ export function NotesProvider({ children }: { children: ReactNode }) {
       setAttachments(attachmentsList);
       setSelectedAttachment((prev) => {
         if (!prev) return prev;
-        return attachmentsList.find((attachment) => attachment.id === prev.id) ?? null;
+        const attachmentId = mapAttachmentId ? mapAttachmentId(prev.id) : prev.id;
+        return attachmentsList.find((attachment) => attachment.id === attachmentId) ?? null;
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load notes");
@@ -150,8 +154,21 @@ export function NotesProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const selectAttachment = useCallback((attachment: AttachmentMetadata) => {
-    selectRequestIdRef.current += 1;
+  const registerEditorFlush = useCallback(
+    (flush: (() => Promise<void>) | null) => {
+      editorFlushRef.current = flush;
+    },
+    [],
+  );
+
+  const selectAttachment = useCallback(async (attachment: AttachmentMetadata) => {
+    const requestId = ++selectRequestIdRef.current;
+
+    // The editor is about to be replaced by the attachment preview. Flush its
+    // pending debounce first so unmounting cannot discard the latest edit.
+    await editorFlushRef.current?.();
+    if (requestId !== selectRequestIdRef.current) return;
+
     pendingNewNoteIdRef.current = null;
     setSelectedAttachment(attachment);
     setSelectedNoteId(null);
@@ -470,7 +487,9 @@ export function NotesProvider({ children }: { children: ReactNode }) {
           return prevId;
         });
 
-        await refreshNotes();
+        await refreshNotes((id) =>
+          id.startsWith(oldPrefix) ? newPrefix + id.substring(oldPrefix.length) : id,
+        );
       } catch (err) {
         setError(
           err instanceof Error ? err.message : "Failed to rename folder"
@@ -533,7 +552,9 @@ export function NotesProvider({ children }: { children: ReactNode }) {
           return prevId;
         });
 
-        await refreshNotes();
+        await refreshNotes((id) =>
+          id.startsWith(oldPrefix) ? newPrefix + id.substring(oldPrefix.length) : id,
+        );
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to move folder");
       }
@@ -544,8 +565,14 @@ export function NotesProvider({ children }: { children: ReactNode }) {
   const setNotesFolder = useCallback(async (path: string) => {
     try {
       await notesService.setNotesFolder(path);
+      const notesList = await notesService.listNotes();
+      const attachmentsList = await notesService.listAttachments();
       setNotesFolderState(path);
+      setNotes(notesList);
+      setAttachments(attachmentsList);
+      setSelectedNoteId(null);
       setSelectedAttachment(null);
+      setCurrentNote(null);
       // Start file watcher after setting folder
       await notesService.startFileWatcher();
     } catch (err) {
@@ -768,6 +795,7 @@ export function NotesProvider({ children }: { children: ReactNode }) {
     () => ({
       selectNote,
       selectAttachment,
+      registerEditorFlush,
       createNote,
       consumePendingNewNote,
       saveNote,
@@ -791,6 +819,7 @@ export function NotesProvider({ children }: { children: ReactNode }) {
     [
       selectNote,
       selectAttachment,
+      registerEditorFlush,
       createNote,
       consumePendingNewNote,
       saveNote,

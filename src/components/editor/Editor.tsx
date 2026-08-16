@@ -23,7 +23,7 @@ import { Markdown } from "@tiptap/markdown";
 import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
 import { lowlight } from "./lowlight";
 import { CodeBlockView } from "./CodeBlockView";
-import { Extension, InputRule } from "@tiptap/core";
+import { Extension, InputRule, mergeAttributes } from "@tiptap/core";
 import { Decoration, DecorationSet } from "@tiptap/pm/view";
 import {
   NodeSelection,
@@ -71,6 +71,7 @@ import { EditorWidthHandles } from "./EditorWidthHandle";
 import { ScratchBlockMath, normalizeBlockMath } from "./MathExtensions";
 import { cn } from "../../lib/utils";
 import { plainTextFromMarkdown } from "../../lib/plainText";
+import { resolveMarkdownImageSources } from "../../lib/markdownAssets";
 import { Button, IconButton, ToolbarButton, Tooltip } from "../ui";
 import * as notesService from "../../services/notes";
 import { downloadPdf, downloadMarkdown } from "../../services/pdf";
@@ -548,6 +549,8 @@ export function Editor({
   const notes = notesCtx?.notes;
   const { textDirection } = useTheme();
   const [isSaving, setIsSaving] = useState(false);
+  const currentNotePathRef = useRef<string | null>(null);
+  currentNotePathRef.current = currentNote?.path ?? null;
   // Force re-render when selection changes to update toolbar active states
   const [, setSelectionKey] = useState(0);
   const [copyMenuOpen, setCopyMenuOpen] = useState(false);
@@ -755,6 +758,13 @@ export function Editor({
       await saveImmediately(loadedNoteIdRef.current, markdown);
     }
   }, [saveImmediately, getMarkdown]);
+
+  // Let navigation wait for a pending debounced save before replacing the editor.
+  useEffect(() => {
+    if (previewMode || !notesCtx) return;
+    notesCtx.registerEditorFlush(flushPendingSave);
+    return () => notesCtx.registerEditorFlush(null);
+  }, [flushPendingSave, notesCtx, previewMode]);
 
   // Schedule a debounced save (markdown computed only when timer fires)
   const scheduleSave = useCallback(() => {
@@ -1097,6 +1107,28 @@ export function Editor({
       Image.configure({
         inline: false,
         allowBase64: false,
+      }).extend({
+        addAttributes() {
+          return {
+            ...this.parent?.(),
+            // Keep the source used in Markdown separate from the URL used by the WebView.
+            resolvedSrc: {
+              default: null,
+              rendered: false,
+            },
+          };
+        },
+        renderHTML({ node, HTMLAttributes }) {
+          const resolvedSrc = node.attrs.resolvedSrc as string | null | undefined;
+          return [
+            "img",
+            mergeAttributes(
+              this.options.HTMLAttributes,
+              HTMLAttributes,
+              resolvedSrc ? { src: resolvedSrc } : {},
+            ),
+          ];
+        },
       }),
       TaskList,
       TaskItem.configure({
@@ -1237,7 +1269,10 @@ export function Editor({
         const manager = currentEditor.storage.markdown?.manager;
         if (manager && typeof manager.parse === "function") {
           try {
-            const parsed = manager.parse(text);
+            const parsed = resolveMarkdownImageSources(
+              manager.parse(text),
+              currentNotePathRef.current ?? "",
+            );
             if (parsed) {
               currentEditor.commands.insertContent(parsed);
               return true;
@@ -1489,7 +1524,10 @@ export function Editor({
         const manager = editor.storage.markdown?.manager;
         if (manager) {
           try {
-            const parsed = manager.parse(currentNote.content);
+            const parsed = resolveMarkdownImageSources(
+              manager.parse(currentNote.content),
+              currentNote.path,
+            );
             editor.commands.setContent(parsed);
           } catch {
             editor.commands.setContent(currentNote.content);
@@ -1521,7 +1559,10 @@ export function Editor({
     const manager = editor.storage.markdown?.manager;
     if (manager) {
       try {
-        const parsed = manager.parse(currentNote.content);
+        const parsed = resolveMarkdownImageSources(
+          manager.parse(currentNote.content),
+          currentNote.path,
+        );
         editor.commands.setContent(parsed);
       } catch {
         // Fallback to plain text if parsing fails
@@ -2027,7 +2068,10 @@ export function Editor({
       const manager = editor.storage.markdown?.manager;
       if (manager) {
         try {
-          const parsed = manager.parse(sourceContent);
+          const parsed = resolveMarkdownImageSources(
+            manager.parse(sourceContent),
+            currentNote?.path ?? "",
+          );
           editor.commands.setContent(parsed);
         } catch {
           editor.commands.setContent(sourceContent);
