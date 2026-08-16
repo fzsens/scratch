@@ -53,25 +53,25 @@ const defaultEditorFontSettings: Required<EditorFontSettings> = {
 const defaultThemeColors: Record<"light" | "dark", Record<ThemeColorKey, string>> = {
   light: {
     bg: "#ffffff",
-    "bg-secondary": "#fafaf9",
-    "bg-muted": "rgba(28, 25, 23, 0.06)",
-    "bg-emphasis": "rgba(28, 25, 23, 0.09)",
-    text: "#1c1917",
-    "text-muted": "#78716c",
-    border: "rgba(28, 25, 23, 0.08)",
-    accent: "#1c1917",
-    selection: "rgba(250, 204, 21, 0.4)",
+    "bg-secondary": "#f7f7f5",
+    "bg-muted": "rgba(55, 53, 47, 0.08)",
+    "bg-emphasis": "rgba(55, 53, 47, 0.13)",
+    text: "#37352f",
+    "text-muted": "rgba(55, 53, 47, 0.58)",
+    border: "rgba(55, 53, 47, 0.12)",
+    accent: "#37352f",
+    selection: "rgba(35, 131, 226, 0.24)",
   },
   dark: {
-    bg: "rgb(22, 20, 19)",
-    "bg-secondary": "rgb(14, 12, 11)",
-    "bg-muted": "rgba(250, 249, 249, 0.05)",
-    "bg-emphasis": "rgba(250, 249, 249, 0.08)",
-    text: "#fafaf9",
-    "text-muted": "#a8a29e",
-    border: "rgba(250, 249, 249, 0.07)",
-    accent: "#fafaf9",
-    selection: "rgba(253, 224, 71, 0.35)",
+    bg: "#191919",
+    "bg-secondary": "#202020",
+    "bg-muted": "rgba(255, 255, 255, 0.055)",
+    "bg-emphasis": "rgba(255, 255, 255, 0.1)",
+    text: "rgba(255, 255, 255, 0.88)",
+    "text-muted": "rgba(255, 255, 255, 0.5)",
+    border: "rgba(255, 255, 255, 0.09)",
+    accent: "#e7e7e7",
+    selection: "rgba(35, 131, 226, 0.38)",
   },
 };
 
@@ -152,15 +152,15 @@ function applyFontCSSVariables(fonts: Required<EditorFontSettings>) {
   root.style.setProperty("--editor-line-height", String(lineHeight));
 
   // Computed header sizes (based on base)
-  root.style.setProperty("--editor-h1-size", `${baseSize * 2.25}px`);
-  root.style.setProperty("--editor-h2-size", `${baseSize * 1.75}px`);
-  root.style.setProperty("--editor-h3-size", `${baseSize * 1.5}px`);
-  root.style.setProperty("--editor-h4-size", `${baseSize * 1.25}px`);
+  root.style.setProperty("--editor-h1-size", `${baseSize * 2}px`);
+  root.style.setProperty("--editor-h2-size", `${baseSize * 1.55}px`);
+  root.style.setProperty("--editor-h3-size", `${baseSize * 1.3}px`);
+  root.style.setProperty("--editor-h4-size", `${baseSize * 1.15}px`);
   root.style.setProperty("--editor-h5-size", `${baseSize}px`);
   root.style.setProperty("--editor-h6-size", `${baseSize}px`);
 
   // Fixed value for paragraph spacing
-  root.style.setProperty("--editor-paragraph-spacing", "0.875em");
+  root.style.setProperty("--editor-paragraph-spacing", "0.8em");
 }
 
 // Apply editor layout width CSS variables
